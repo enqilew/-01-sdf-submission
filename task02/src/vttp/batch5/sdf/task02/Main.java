@@ -15,7 +15,7 @@ public class Main {
         String fileName = args[0];
         char[][] board;
         
-        // Step 1: Read the board from the file
+        // Read the board from the file
         try {
             board = readBoard(fileName);
         } catch (IOException e) {
@@ -23,13 +23,13 @@ public class Main {
             return;
         }
 
-        // Step 2: Display the board
+        // Display the board
         System.out.println("Processing: " + fileName);
         System.out.println("Board:");
         displayBoard(board);
         System.out.println("-----------------------------");
 
-        // Step 3: Get all legal moves and evaluate utility
+        // Get all legal moves and evaluate utility
         List<int[]> legalMoves = getLegalMoves(board);
         for (int[] move : legalMoves) {
             int x = move[0];

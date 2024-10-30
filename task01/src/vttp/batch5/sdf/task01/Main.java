@@ -9,10 +9,10 @@ import java.util.stream.Collectors;
 public class Main {
 
     public static void main(String[] args) {
-        String fileName = "day.csv"; // Assuming the CSV file is named day.csv
+        String fileName = "day.csv"; 
         List<BikeEntry> entries = new ArrayList<>();
 
-        // Step 1: Load data from day.csv into BikeEntry instances
+        // Load data from day.csv into BikeEntry instances
         try {
             List<String> lines = Files.readAllLines(Paths.get(fileName));
 
@@ -30,13 +30,13 @@ public class Main {
             return;
         }
 
-        // Step 2: Sort by total cyclists (casual + registered) in descending order
+        // Sort by total cyclists (casual + registered) in descending order
         entries.sort((a, b) -> Integer.compare(b.getCasual() + b.getRegistered(), a.getCasual() + a.getRegistered()));
 
-        // Step 3: Define output positions
+        // Define output positions
         String[] positions = { "highest", "second highest", "third highest", "fourth highest", "fifth highest" };
 
-        // Step 4: Print top 5 days
+        // Print top 5 days
         for (int i = 0; i < 5 && i < entries.size(); i++) {
             BikeEntry entry = entries.get(i);
             int totalCyclists = entry.getCasual() + entry.getRegistered();
