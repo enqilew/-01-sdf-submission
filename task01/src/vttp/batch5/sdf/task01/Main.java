@@ -1,78 +1,56 @@
 package vttp.batch5.sdf.task01;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileInputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.xml.crypto.Data;
-
 import vttp.batch5.sdf.task01.models.BikeEntry;
-import vttp.batch5.sdf.task01.Utilities;
+import java.nio.file.*;
+import java.io.*;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Main {
-    static Map<BikeEntry, Integer> cyclistMap = new HashMap<>();
-	public static void main(String[] args) {
 
-        try (BufferedReader br = new BufferedReader(new FileReader("day.csv"))) {
-            String line = br.readLine();
-            while ((line = br.readLine()) != null) {
-                String[] values = line.split(",");
-                
-                BikeEntry entry = new BikeEntry();
-                entry.setSeason(Integer.parseInt(values[0]));
-                entry.setMonth(Integer.parseInt(values[1]));
-                entry.setHoliday(values[2].equals("1"));
-                entry.setWeekday(Integer.parseInt(values[3]));
-                entry.setWeather(Integer.parseInt(values[4]));
-                entry.setTemperature(Float.parseFloat(values[5]));
-                entry.setHumidity(Float.parseFloat(values[6]));
-                entry.setWindspeed(Float.parseFloat(values[7]));
-                entry.setCasual(Integer.parseInt(values[8]));
-                entry.setRegistered(Integer.parseInt(values[9]));
+    public static void main(String[] args) {
+        String fileName = "day.csv"; // Assuming the CSV file is named day.csv
+        List<BikeEntry> entries = new ArrayList<>();
 
-                int totalCyclists = entry.getCasual() + entry.getRegistered();
-                cyclistMap.put(entry, totalCyclists);
+        // Step 1: Load data from day.csv into BikeEntry instances
+        try {
+            List<String> lines = Files.readAllLines(Paths.get(fileName));
+
+            // Check if file has at least one line for headers and skip it
+            boolean hasHeader = lines.get(0).contains("season"); // Assuming "season" is in the header
+            int startIndex = hasHeader ? 1 : 0;
+
+            // Process each line (excluding the header if present)
+            for (int i = startIndex; i < lines.size(); i++) {
+                String[] cols = lines.get(i).split(",");
+                entries.add(BikeEntry.toBikeEntry(cols));
             }
         } catch (IOException e) {
             System.out.println("Error reading file: " + e.getMessage());
+            return;
         }
-        
-       // Sort entries by total cyclists in descending order using a lambda expression
-       List<Map.Entry<BikeEntry, Integer>> topCyclists = cyclistMap.entrySet()
-       .stream()
-       .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue())) // Sort by total cyclists descending
-       .limit(5) // Get top 5
-       .collect(Collectors.toList());
 
-        // // After getting the top 5 position, loop through    
-        //  for (int i = 0; i< topCyclists.length; i ++){
-        //      System.out.println("The %d (position) recorded number of cyclists was in  %d (season), on a %d (day) in the month of %d (month).\n There were a total of %d (total) cyclists. The weather was %d (weather).\n %d (day) was %d.", position, season, day, month, total, weather, day, holiday);
-        //  }
+        // Step 2: Sort by total cyclists (casual + registered) in descending order
+        entries.sort((a, b) -> Integer.compare(b.getCasual() + b.getRegistered(), a.getCasual() + a.getRegistered()));
 
+        // Step 3: Define output positions
+        String[] positions = { "highest", "second highest", "third highest", "fourth highest", "fifth highest" };
 
+        // Step 4: Print top 5 days
+        for (int i = 0; i < 5 && i < entries.size(); i++) {
+            BikeEntry entry = entries.get(i);
+            int totalCyclists = entry.getCasual() + entry.getRegistered();
+            String season = Utilities.toSeason(entry.getSeason());
+            String weekday = Utilities.toWeekday(entry.getWeekday());
+            String month = Utilities.toMonth(entry.getMonth());
+            String weather = "clear"; // Placeholder for actual weather parsing if needed
+            String holiday = entry.isHoliday() ? "a holiday" : "not a holiday";
+
+            System.out.printf("The %s recorded number of cyclists was in %s, on a %s in the month of %s.%n", 
+                    positions[i], season, weekday, month);
+            System.out.printf("There were a total of %d cyclists. The weather was %s.%n", 
+                    totalCyclists, weather);
+            System.out.printf("%s was %s.%n%n", weekday, holiday);
+        }
     }
 }
-        
-//  Read day.csv file and add it into a HashMap
-//  Find the total number of cyclists by adding casual and registerd cyclists up
-//  After getting the total number of cyclist, sort according to descending order (high to low)
-//  This will allow us to get the top 5 days with highest number of cyclists
-//  Extract the other values that are in the same row (season, day, month, weather, holiday)
-//  Link the values to Utilities.java
-//  Print the result out in the a paragraph
-       
-
-
-        

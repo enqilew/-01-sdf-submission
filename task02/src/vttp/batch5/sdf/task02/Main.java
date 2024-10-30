@@ -1,243 +1,139 @@
 package vttp.batch5.sdf.task02;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.Reader;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
 
 public class Main {
 
-	private static final String[] args = null;
-	static String fileName = args[0];
-    private char[][] board;
-    private char currentPlayer;
-    private boolean gameOn;
-    private static final char PLAYER = 'X';     // Human player
-    private static final char COMPUTER = 'O';   // Computer player
-
-    public Main() {
-        board = new char[3][3];
-        currentPlayer = PLAYER; 
-        gameOn = true;
-        initializeBoard();
-    }
-
-    private void initializeBoard() {
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                board[i][j] = '-';
-            }
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.out.println("Error: No TTT configuration file provided.");
+            return;
         }
-    }
 
-    public void displayBoard() {
-        System.out.println("Current board:");
-        Reader r = new FileReader(fileName);
-        BufferedReader br = new BufferedReader(r);
-        String line;
-
-        while ((line = br.readLine())!= null) {
-            line = line.trim();
+        String fileName = args[0];
+        char[][] board;
         
-            String terms[] = line.split(" ");
-                populateBoard(br);
-                System.out.println();
+        // Step 1: Read the board from the file
+        try {
+            board = readBoard(fileName);
+        } catch (IOException e) {
+            System.out.println("Error reading file: " + e.getMessage());
+            return;
+        }
 
-            }
-            br.close();
+        // Step 2: Display the board
+        System.out.println("Processing: " + fileName);
+        System.out.println("Board:");
+        displayBoard(board);
+        System.out.println("-----------------------------");
 
-		if (args.length <= 0) {
-            System.err.println("Missing txt file");
-            System.exit(1);
+        // Step 3: Get all legal moves and evaluate utility
+        List<int[]> legalMoves = getLegalMoves(board);
+        for (int[] move : legalMoves) {
+            int x = move[0];
+            int y = move[1];
+            int utility = evaluateMoveUtility(board, x, y);
+            System.out.printf("y=%d, x=%d, utility=%d%n", y, x, utility);
         }
     }
-		
-    public boolean playMove(int row, int col) {
-        if (row < 0 || row >= 3 || col < 0 || col >= 3 || board[row][col] != '-') {
-            System.out.println("Invalid move. Try again.");
-            return false;
+
+    // Method to read the board from a file
+    private static char[][] readBoard(String fileName) throws IOException {
+        List<String> lines = Files.readAllLines(Paths.get(fileName));
+        char[][] board = new char[lines.size()][];
+        for (int i = 0; i < lines.size(); i++) {
+            board[i] = lines.get(i).toCharArray();
         }
-        board[row][col] = currentPlayer;
-        return true;
+        return board;
     }
 
-    private int minimax(char[][] board, boolean isMaximizing) {
-        if (checkWin(COMPUTER)) return 10;
-        if (checkWin(PLAYER)) return -10;
-        if (checkDraw()) return 0;
+    // Method to display the board
+    private static void displayBoard(char[][] board) {
+        for (char[] row : board) {
+            System.out.println(new String(row));
+        }
+    }
 
-        if (isMaximizing) {  // Computer's turn
-            int bestScore = Integer.MIN_VALUE;
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
-                    if (board[i][j] == '-') {
-                        board[i][j] = COMPUTER;
-                        int score = minimax(board, false);
-                        board[i][j] = '-';
-                        bestScore = Math.max(score, bestScore);
-                    }
+    // Method to get all legal moves (empty positions)
+    private static List<int[]> getLegalMoves(char[][] board) {
+        List<int[]> moves = new ArrayList<>();
+        for (int y = 0; y < board.length; y++) {
+            for (int x = 0; x < board[y].length; x++) {
+                if (board[y][x] == '.') {
+                    moves.add(new int[]{x, y});
                 }
             }
-            return bestScore;
-        } else {  // Human's turn
-            int bestScore = Integer.MAX_VALUE;
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
-                    if (board[i][j] == '-') {
-                        board[i][j] = PLAYER;
-                        int score = minimax(board, true);
-                        board[i][j] = '-';
-                        bestScore = Math.min(score, bestScore);
-                    }
-                }
-            }
-            return bestScore;
+        }
+        return moves;
+    }
+
+    // Method to evaluate the utility of placing an X at a given position
+    private static int evaluateMoveUtility(char[][] board, int x, int y) {
+        char[][] newBoard = cloneBoard(board);
+        newBoard[y][x] = 'X';
+
+        if (checkWin(newBoard, 'X')) {
+            return 1; // Positive utility (you win)
+        } else if (checkPotentialLoss(newBoard, 'O')) {
+            return -1; // Negative utility (opponent wins)
+        } else {
+            return 0; // Neutral utility
         }
     }
 
-    private void playComputerMove() {
-        int bestScore = Integer.MIN_VALUE;
-        int moveRow = -1;
-        int moveCol = -1;
+    // Method to clone the board for simulation
+    private static char[][] cloneBoard(char[][] board) {
+        char[][] clone = new char[board.length][];
+        for (int i = 0; i < board.length; i++) {
+            clone[i] = board[i].clone();
+        }
+        return clone;
+    }
 
+    // Method to check if the specified player has won
+    private static boolean checkWin(char[][] board, char player) {
+        // Check rows, columns, and diagonals
         for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (board[i][j] == '-') {
-                    board[i][j] = COMPUTER;
-                    int score = minimax(board, false);
-                    board[i][j] = '-';
-                    if (score > bestScore) {
-                        bestScore = score;
-                        moveRow = i;
-                        moveCol = j;
-                    }
-                }
-            }
-        }
-
-        board[moveRow][moveCol] = COMPUTER;
-        System.out.println("Computer played move at (" + moveRow + ", " + moveCol + ")");
-    }
-
-    private boolean checkWin(char player) {
-        for (int i = 0; i < 3; i++) {
-            if ((board[i][0] == player && board[i][1] == player && board[i][2] == player) ||
+            if ((board[i][0] == player && board[i][1] == player && board[i][2] == player) || 
                 (board[0][i] == player && board[1][i] == player && board[2][i] == player)) {
                 return true;
             }
         }
-
-        if ((board[0][0] == player && board[1][1] == player && board[2][2] == player) ||
-            (board[0][2] == player && board[1][1] == player && board[2][0] == player)) {
-            return true;
-        }
-
-        return false;
+        return (board[0][0] == player && board[1][1] == player && board[2][2] == player) ||
+               (board[0][2] == player && board[1][1] == player && board[2][0] == player);
     }
 
-    private boolean checkDraw() {
+    // Method to check if the opponent has a potential win
+    private static boolean checkPotentialLoss(char[][] board, char opponent) {
         for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (board[i][j] == '-') {
-                    return false;
-                }
+            if (countRowPotential(board, opponent, i, true) || 
+                countRowPotential(board, opponent, i, false)) {
+                return true;
             }
         }
-        return true;
+        return checkDiagonalsPotential(board, opponent);
     }
 
-    private void togglePlayer() {
-        currentPlayer = (currentPlayer == PLAYER) ? COMPUTER : PLAYER;
-    }
-
-    public void startGame() {
-        Scanner scanner = new Scanner(System.in);
-
-        while (gameOn) {
-            displayBoard();
-            if (currentPlayer == PLAYER) {
-                System.out.println("Player " + currentPlayer + ", enter your move (row and column): ");
-                int row = scanner.nextInt();
-                int col = scanner.nextInt();
-
-                if (playMove(row, col)) {
-                    if (checkWin(PLAYER)) {
-                        displayBoard();
-                        System.out.println("Player " + PLAYER + " wins!");
-                        gameOn = false;
-                    } else if (checkDraw()) {
-                        displayBoard();
-                        System.out.println("It's a draw!");
-                        gameOn = false;
-                    } else {
-                        togglePlayer();
-                    }
-                }
-            } else {  // Computer's turn
-                playComputerMove();
-                if (checkWin(COMPUTER)) {
-                    displayBoard();
-                    System.out.println("Computer wins!");
-                    gameOn = false;
-                } else if (checkDraw()) {
-                    displayBoard();
-                    System.out.println("It's a draw!");
-                    gameOn = false;
-                } else {
-                    togglePlayer();
-                }
-            }
+    // Method to count potential winning rows or columns
+    private static boolean countRowPotential(char[][] board, char opponent, int index, boolean isRow) {
+        int countOpponent = 0, countEmpty = 0;
+        for (int j = 0; j < 3; j++) {
+            char cell = isRow ? board[index][j] : board[j][index];
+            if (cell == opponent) countOpponent++;
+            else if (cell == '.') countEmpty++;
         }
-        scanner.close();
+        return countOpponent == 2 && countEmpty == 1;
     }
 
-    public static void main(String[] args) {
-        System.out.printf("Processing: %s\n", fileName);
-        System.out.printf("Board:");
-        System.out.println(br);
-        System.out.println("-----------------------------");
-        
-        for (every empty space int i; i < empty position space.length; i++){ // From HashMap
-            System.out.printf("y=%d, x=%d, utility=%d", y, x, utility);
-        }
-        
+    // Method to check diagonals for potential winning moves
+    private static boolean checkDiagonalsPotential(char[][] board, char opponent) {
+        return ((board[0][0] == opponent && board[1][1] == opponent && board[2][2] == '.') ||
+                (board[0][0] == opponent && board[1][1] == '.' && board[2][2] == opponent) ||
+                (board[0][0] == '.' && board[1][1] == opponent && board[2][2] == opponent) ||
+                (board[0][2] == opponent && board[1][1] == opponent && board[2][0] == '.') ||
+                (board[0][2] == opponent && board[1][1] == '.' && board[2][0] == opponent) ||
+                (board[0][2] == '.' && board[1][1] == opponent && board[2][0] == opponent));
     }
 }
-
-
-//tttboard = read boards configuration file
-TTTBoard tttBoard = TTTBoard.readFile(fileName);
-//empty_pos: =tttboard.get_all_emptty_pos()
-List<Integer> emptyPos = tttBoard.getAllEmptyPositions();
-//utility: = map
-Map<Integer, Integer> utility = new HashMap<>();
-//for every pos in empty_pos begin
-
-
-//	new_tttboard = clone tttboard
-TTTBoard newTTTBoard = tttBoard.clone();
-
-//	new_tttboard.place(X,pos)
-newTTTBoard.place("X", pos);
-// 	evaluate horizontal, vertical, and diagonal rows on new_tttboard
-//		if there are 3 X
-//			utility[pos]: =1
-//		else if there are 2 O and 1 SPACE
-//			utility[pos]: =-1
-//		else
-//			utility[pos] :=0
-if (newTTTBoard.hasThreeInRow("X")) {
-utility.put(pos, 1);
-} else if (newTTTBoard.hasTwoOAndOneEmpty()) {
-    utility.put(pos, -1);
-} else {
-    utility.put(pos, 0);
-            }
-
-
-      
